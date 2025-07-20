@@ -7,30 +7,28 @@ import (
 	domain "domain/model"
 )
 
-type SourcesRepository struct {
-	memorySourcesRepository repos.SourcesRepository
-}
-
 type memorySourcesRepo struct {
-	logger  logger.Logger
+	log     logger.Logger
 	sources []domain.Source
 }
 
-func NewSourcesRepository(logger logger.Logger) repos.SourcesRepository {
+// NewSourcesRepository returns an instance of SourcesRepository
+func NewSourcesRepository(log logger.Logger) repos.SourcesRepository {
 	return &memorySourcesRepo{
-		logger:  logger,
+		log:     log,
 		sources: []domain.Source{},
 	}
 }
 
 func (r *memorySourcesRepo) GetAll(ctx context.Context) []domain.Source {
-	r.logger.Info(ctx, "Sources successfully found")
+	r.log.Info(ctx, "Sources successfully found")
+
 	return r.sources
 }
 
 func (r *memorySourcesRepo) Save(ctx context.Context, newSource *domain.Source) *domain.Source {
 	r.sources = append(r.sources, *newSource)
+	r.log.Info(ctx, "Source successfully created")
 
-	r.logger.Info(ctx, "Source successfully created")
 	return newSource
 }

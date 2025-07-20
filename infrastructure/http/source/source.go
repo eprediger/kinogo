@@ -13,6 +13,7 @@ import (
 	"github.com/mmcdole/gofeed"
 )
 
+// SourceHandler defines the methods to interact with the adapter
 type SourceHandler interface {
 	GetAllSources(w http.ResponseWriter, r *http.Request)
 	CreateSource(w http.ResponseWriter, r *http.Request)

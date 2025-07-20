@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"errors"
 	"net/http"
 	"os"
 	"os/signal"
@@ -21,36 +21,40 @@ func main() {
 	logger.Info(context.Background(), "Starting application")
 
 	sourcesRepo := ddbb.NewSourcesRepository(logger)
-	sourcesService := sourcesUseCases.NewSourcesService(sourcesRepo)
+	sourcesService := sourcesUseCases.NewSourceService(sourcesRepo)
 	sourcesHandler := sourcesAdapter.NewSourcesHandler(sourcesService)
 
 	handlers := http.NewServeMux()
 	handlers.HandleFunc("POST /sources", sourcesHandler.CreateSource)
 	handlers.HandleFunc("GET /sources", sourcesHandler.GetAllSources)
+
 	server := &http.Server{
 		Addr:    ":8080",
 		Handler: handlers,
 	}
 
 	go func() {
-		logger.Info(context.Background(), "Application started")
+		ctx := context.Background()
+		logger.Info(ctx, "Starting HTTP server")
 
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatal(err)
+		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+			logger.Error(ctx, err.Error())
+			os.Exit(int(syscall.SIGINT))
 		}
+		logger.Info(ctx, "Stop serving new connections")
 	}()
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	shutdownServer := make(chan os.Signal, 1)
+	signal.Notify(shutdownServer, syscall.SIGINT, syscall.SIGTERM)
+	<-shutdownServer
 
 	// Create shutdown context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		log.Println("Server forced to shutdown")
-	} else {
-		log.Println("Server gracefully stopped")
+		logger.Error(ctx, "Server forced to shutdown", err.Error())
 	}
+
+	logger.Info(ctx, "Server gracefully stopped")
 }

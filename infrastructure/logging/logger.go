@@ -15,7 +15,7 @@ type logger struct {
 func NewLogger(level application.LogLevel) application.Logger {
 	handler := slog.NewTextHandler(
 		os.Stdout,
-		&slog.HandlerOptions{Level: convertLevel(level)})
+		&slog.HandlerOptions{Level: translateToSlogLevel(level)})
 
 	return &logger{
 		logger: slog.New(handler),
@@ -38,7 +38,7 @@ func (l *logger) Warn(ctx context.Context, msg string, fields ...any) {
 	l.logWithLevel(ctx, slog.LevelWarn, msg, fields...)
 }
 
-func convertLevel(level application.LogLevel) slog.Level {
+func translateToSlogLevel(level application.LogLevel) slog.Level {
 	switch level {
 	case application.Debug:
 		return slog.LevelDebug
@@ -82,4 +82,3 @@ func (l *logger) addFieldToRecord(record *slog.Record, field any) {
 		record.AddAttrs(slog.Any("field", v))
 	}
 }
-
